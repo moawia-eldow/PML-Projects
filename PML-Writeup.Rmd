@@ -1,0 +1,77 @@
+---
+title: "Machine Learning Algorithm to Predict Activity Quality from Activity Monitors"
+author: "Moawia Eldow"
+output:
+  html_document:
+    keep_md: yes
+---
+
+### Introduction:
+
+This project used data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants. They were asked to perform barbell lifts correctly and incorrectly in 5 different ways (1). The goal of this project is to predict the manner in which they did the exercise. We built the model using machine learning, and we used cross validation of handout of the two datsets of training and testing. We also used our prediction model to predict the test cases in the testing set, and then we generated the errors using the confusion matrix. 
+
+### Loading and Cleaning Data: 
+
+We start by loading the data from two files of pml-trainging.csv and pml-testing.csv and show the dimensions
+
+```{r}
+trainPML <- read.csv("pml-training.csv")
+dim(trainPML)
+testPML <- read.csv("pml-testing.csv")
+dim(testPML)
+```
+
+Since the data contains 160 varaibles with some additional variables used by creaters, it also contains many blanks and NAs, we will first remove the additional columns that will not contribute in model. Secondly, we remove the variables with NAs and blank in the two sets.We reach to reduce the number of variables to 53 variables in the two sets.
+
+```{r}
+trainData <- subset (trainPML , select = -X: -num_window)
+testData <- subset (testPML , select = -X: -num_window)
+trainData <- trainData[, sapply(trainData, function(x) !any(is.na(x)))]
+trainData <- trainData[, sapply(trainData, function(x) !any(x==""))]
+dim(trainData)
+testData <- testData[, sapply(testData, function(x) !any(is.na(x)))]
+dim(testData)
+```
+
+
+### Cross-Validation and Building the Machine Learning Model:
+
+Here, we will adopt the handout cross-validation by generating two datasets - training and testing.
+
+```{r}
+library (caret)
+set.seed (33833)
+trainIndex = createDataPartition(trainData$classe, p = 3/4)[[1]]
+training = trainData[trainIndex,]
+testing = trainData[-trainIndex,]
+```
+
+Then, we build the model of machine learning using the random forest.
+
+```{r}
+library (randomForest)
+predictors <- training [, -53]
+decision <- training [, 53]
+rfMD <- randomForest (predictors, decision)
+```
+
+
+### Setting the Confusion Matrix of Errors and Prediction on Test Dataset:
+
+Now, we use the testing dataset to generate the prediction class, and then the confusion matrix. we have found the whole accuracy of the model is 99%. The following table shows the different error measures for the 5 classes of the manner.
+
+```{r}
+predClass <- predict (rfMD, testing)
+confusionMatrix (testing$classe,predClass)
+```
+
+Finally, we will use the model to generate the prediction vector for the 20 cases in the test set. So that, this will be very useful for the submission project.
+
+```{r}
+PredTest20 <- predict (rfMD, testData)
+PredTest20
+```
+
+### References:
+
+(1) Velloso, E.; Bulling, A.; Gellersen, H.; Ugulino, W.; Fuks, H. Qualitative Activity Recognition of Weight Lifting Exercises. Proceedings of 4th International Conference in Cooperation with SIGCHI (Augmented Human '13) . Stuttgart, Germany: ACM SIGCHI, 2013, (The Weight Lifting Exercise Dataset - http://groupware.les.inf.puc-rio.br/har).
